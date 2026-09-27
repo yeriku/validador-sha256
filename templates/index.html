@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Validador de integridad SHA-256</title>
+    <style>
+        body { font-family: Arial, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; }
+        label { display: block; margin-top: 15px; font-weight: bold; }
+        input[type="file"], input[type="text"] { width: 100%; padding: 6px; margin-top: 4px; }
+        button { margin-top: 20px; padding: 10px 20px; cursor: pointer; }
+        .hash { word-break: break-all; background: #f0f0f0; padding: 10px; font-family: monospace; }
+        .ok { color: green; font-weight: bold; }
+        .modificado { color: red; font-weight: bold; }
+        .caja { border: 1px solid #ccc; padding: 15px; margin-top: 25px; border-radius: 6px; }
+    </style>
+</head>
+<body>
+    <h1>Validador de integridad de archivos (SHA-256)</h1>
+
+    <form method="POST" enctype="multipart/form-data">
+        <label for="archivo">Archivo a verificar</label>
+        <input type="file" name="archivo" id="archivo" required>
+
+        <label for="referencia">Hash de referencia (opcional, pegalo aquí)</label>
+        <input type="text" name="referencia" id="referencia" placeholder="Pegar hash SHA-256 de referencia">
+
+        <label for="archivo2">O comparar contra otro archivo (opcional)</label>
+        <input type="file" name="archivo2" id="archivo2">
+
+        <button type="submit">Verificar</button>
+    </form>
+
+    {% if resultado %}
+        <div class="caja">
+            <h2>Resultado</h2>
+            <p><strong>Archivo:</strong> {{ resultado.nombre }}</p>
+            <p><strong>Hash SHA-256 calculado:</strong></p>
+            <p class="hash">{{ resultado.hash }}</p>
+
+            {% if resultado.referencia %}
+                <p><strong>Hash de referencia:</strong></p>
+                <p class="hash">{{ resultado.referencia }}</p>
+                {% if resultado.veredicto == "ok" %}
+                    <p class="ok">Integridad verificada: los archivos coinciden.</p>
+                {% else %}
+                    <p class="modificado">Archivo modificado: los hashes no coinciden.</p>
+                {% endif %}
+            {% else %}
+                <p><em>No se ingresó un hash de referencia ni un segundo archivo para comparar.</em></p>
+            {% endif %}
+        </div>
+
+        <div class="caja">
+            <h2>VirusTotal</h2>
+            {% if resultado.vt.estado == "encontrado" %}
+                <p>Este hash fue encontrado en VirusTotal. Resultados del último análisis:</p>
+                <ul>
+                    <li>Maliciosos: {{ resultado.vt.stats.malicious }}</li>
+                    <li>Sospechosos: {{ resultado.vt.stats.suspicious }}</li>
+                    <li>Inofensivos: {{ resultado.vt.stats.harmless }}</li>
+                    <li>Sin detección: {{ resultado.vt.stats.undetected }}</li>
+                </ul>
+            {% elif resultado.vt.estado == "no_existe" %}
+                <p>Este hash <strong>no existe</strong> en la base de datos de VirusTotal.</p>
+            {% elif resultado.vt.estado == "sin_clave" %}
+                <p>No hay una clave de API configurada. Podés consultar manualmente el reporte en el enlace de abajo.</p>
+            {% else %}
+                <p>Ocurrió un error al consultar VirusTotal (código {{ resultado.vt.codigo }}).</p>
+            {% endif %}
+            <p><a href="{{ resultado.vt.enlace }}" target="_blank">Ver reporte en VirusTotal</a></p>
+        </div>
+    {% endif %}
+</body>
+</html>
